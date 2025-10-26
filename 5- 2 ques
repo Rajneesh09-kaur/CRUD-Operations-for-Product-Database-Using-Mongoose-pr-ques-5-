@@ -1,24 +1,114 @@
-const express=require('express');
-const mongoose=require('mongoose');
-const bodyParser=require('body-parser');
-const app=express();
+// =============================================
+// Student Management System using Node.js, Express & MongoDB (MVC Architecture)
+// =============================================
+
+const express = require("express");
+const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
+
+const app = express();
+
+// Middleware
 app.use(bodyParser.json());
-mongoose.connect('mongodb://127.0.0.1:27017/studentdb',{useNewUrlParser:true,useUnifiedTopology:true});
 
-const Student=mongoose.model('Student',new mongoose.Schema({name:{type:String,required:true},age:{type:Number,required:true},course:{type:String,required:true}}));
+// ============================
+// MongoDB Connection
+// ============================
+mongoose
+  .connect("mongodb://127.0.0.1:27017/studentDB", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB connected successfully"))
+  .catch((err) => console.error("❌ MongoDB connection failed:", err));
 
-const studentController={
-  create:async(req,res)=>{try{const s=new Student(req.body);await s.save();res.json({message:'Student added',student:s});}catch(e){res.status(400).json({error:e.message});}},
-  getAll:async(req,res)=>{try{res.json(await Student.find());}catch(e){res.status(500).json({error:e.message});}},
-  getById:async(req,res)=>{try{const s=await Student.findById(req.params.id);if(!s)return res.status(404).json({error:'Student not found'});res.json(s);}catch(e){res.status(400).json({error:e.message});}},
-  update:async(req,res)=>{try{const s=await Student.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true});if(!s)return res.status(404).json({error:'Student not found'});res.json({message:'Student updated',student:s});}catch(e){res.status(400).json({error:e.message});}},
-  delete:async(req,res)=>{try{const s=await Student.findByIdAndDelete(req.params.id);if(!s)return res.status(404).json({error:'Student not found'});res.json({message:'Student deleted',student:s});}catch(e){res.status(500).json({error:e.message});}}
+// ============================
+// Model (Student Schema)
+// ============================
+const studentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  age: { type: Number, required: true },
+  course: { type: String, required: true },
+});
+
+const Student = mongoose.model("Student", studentSchema);
+
+// ============================
+// Controller (CRUD Operations)
+// ============================
+
+// Create Student
+const createStudent = async (req, res) => {
+  try {
+    const student = new Student(req.body);
+    await student.save();
+    res.status(201).json({ message: "Student created successfully", student });
+  } catch (error) {
+    res.status(400).json({ message: "Error creating student", error });
+  }
 };
 
-app.post('/students',studentController.create);
-app.get('/students',studentController.getAll);
-app.get('/students/:id',studentController.getById);
-app.put('/students/:id',studentController.update);
-app.delete('/students/:id',studentController.delete);
+// Get All Students
+const getAllStudents = async (req, res) => {
+  try {
+    const students = await Student.find();
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving students", error });
+  }
+};
 
-app.listen(4000,()=>console.log('Student Management API running on port 4000'));
+// Get Student by ID
+const getStudentById = async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+    res.status(200).json(student);
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving student", error });
+  }
+};
+
+// Update Student by ID
+const updateStudent = async (req, res) => {
+  try {
+    const updated = await Student.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!updated) return res.status(404).json({ message: "Student not found" });
+    res.status(200).json({ message: "Student updated successfully", updated });
+  } catch (error) {
+    res.status(400).json({ message: "Error updating student", error });
+  }
+};
+
+// Delete Student by ID
+const deleteStudent = async (req, res) => {
+  try {
+    const deleted = await Student.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: "Student not found" });
+    res.status(200).json({ message: "Student deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting student", error });
+  }
+};
+
+// ============================
+// Routes
+// ============================
+app.get("/", (req, res) => {
+  res.send(" Welcome to the Student Management System API");
+});
+
+app.post("/api/students", createStudent);
+app.get("/api/students", getAllStudents);
+app.get("/api/students/:id", getStudentById);
+app.put("/api/students/:id", updateStudent);
+app.delete("/api/students/:id", deleteStudent);
+
+// ============================
+// Start Server
+// ============================
+const PORT = 3000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
